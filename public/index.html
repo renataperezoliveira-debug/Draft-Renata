@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registro ABA - Draft Renata</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Registro ABA</h1>
+    <nav>
+      <button data-view="home" class="nav-btn active">Sessoes</button>
+      <button data-view="new" class="nav-btn">Nova sessao</button>
+      <button data-view="evolution" class="nav-btn">Evolucao</button>
+      <button data-view="data" class="nav-btn">Dados</button>
+    </nav>
+  </header>
+
+  <main id="app"></main>
+
+  <!-- Templates -->
+  <template id="tpl-home">
+    <section class="view">
+      <div class="view-header">
+        <h2>Sessoes registradas</h2>
+        <div class="filters">
+          <input type="text" id="filterChild" placeholder="Filtrar por crianca..." />
+          <select id="filterProgram">
+            <option value="">Todos os programas</option>
+          </select>
+        </div>
+      </div>
+      <div id="sessionsList" class="sessions-list"></div>
+    </section>
+  </template>
+
+  <template id="tpl-new">
+    <section class="view">
+      <h2>Nova sessao</h2>
+      <form id="newSessionForm" class="form">
+        <label>
+          Programa
+          <select name="programId" required></select>
+        </label>
+        <p class="program-desc" id="programDesc"></p>
+
+        <label>
+          Nome da crianca
+          <input type="text" name="childName" required />
+        </label>
+        <div class="row">
+          <label>
+            Data
+            <input type="date" name="date" required />
+          </label>
+          <label>
+            Passo
+            <input type="text" name="step" placeholder="Ex.: 3" />
+          </label>
+        </div>
+        <label>
+          Terapeuta(s)
+          <input type="text" name="therapists" />
+        </label>
+        <fieldset id="stimuliFieldset">
+          <legend>Estimulos</legend>
+        </fieldset>
+
+        <div class="actions">
+          <button type="submit" class="primary">Gerar tentativas randomizadas</button>
+        </div>
+      </form>
+    </section>
+  </template>
+
+  <template id="tpl-session">
+    <section class="view">
+      <div class="view-header">
+        <div>
+          <h2 id="sessionTitle"></h2>
+          <p id="sessionMeta" class="meta"></p>
+        </div>
+        <div class="header-actions">
+          <button id="btnSave" class="primary">Salvar</button>
+          <button id="btnDelete" class="danger">Excluir</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Cabecalho</h3>
+        <form id="headerForm" class="form compact">
+          <div class="row">
+            <label>Crianca <input type="text" name="childName" /></label>
+            <label>Data <input type="date" name="date" /></label>
+            <label>Passo <input type="text" name="step" /></label>
+          </div>
+          <label>Terapeuta(s) <input type="text" name="therapists" /></label>
+          <fieldset id="stimuliFieldsetEdit">
+            <legend>Estimulos</legend>
+          </fieldset>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>Tentativas</h3>
+        <p class="hint">As celulas com borda destacada indicam a posicao da resposta correta esperada (E/C/D que coincide com M).</p>
+        <div id="trialsTableWrap"></div>
+      </div>
+
+      <div class="card" id="summaryCard">
+        <h3>Resumo</h3>
+        <div id="summaryArea"></div>
+      </div>
+    </section>
+  </template>
+
+  <template id="tpl-evolution">
+    <section class="view">
+      <h2>Evolucao</h2>
+      <div class="filters">
+        <select id="evoChild"><option value="">Selecione a crianca</option></select>
+        <select id="evoProgram"><option value="">Selecione o programa</option></select>
+      </div>
+      <div id="evoChartWrap" class="card chart-wrap"></div>
+      <div id="evoTableWrap" class="card"></div>
+    </section>
+  </template>
+
+  <template id="tpl-data">
+    <section class="view">
+      <h2>Exportar / Importar</h2>
+      <div class="card">
+        <h3>Exportar</h3>
+        <p>Baixa um arquivo JSON com todas as sessoes registradas.</p>
+        <a href="/api/export" class="button primary">Baixar JSON</a>
+      </div>
+      <div class="card">
+        <h3>Importar</h3>
+        <p>Envie um arquivo JSON exportado anteriormente.</p>
+        <form id="importForm">
+          <input type="file" name="file" accept="application/json" required />
+          <label>
+            <input type="radio" name="mode" value="merge" checked /> Mesclar (preserva sessoes existentes)
+          </label>
+          <label>
+            <input type="radio" name="mode" value="replace" /> Substituir tudo
+          </label>
+          <button type="submit" class="primary">Importar</button>
+        </form>
+        <p id="importResult" class="hint"></p>
+      </div>
+    </section>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>

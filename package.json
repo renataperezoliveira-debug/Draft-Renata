@@ -1,0 +1,16 @@
+{
+  "name": "draft-renata",
+  "version": "0.1.0",
+  "description": "Sistema de registro de sessoes ABA - acompanhamento e evolucao",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
