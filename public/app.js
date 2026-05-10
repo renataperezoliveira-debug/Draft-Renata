@@ -47,6 +47,12 @@
   async function navigate(view, params) {
     state.currentView = view;
     setActiveNav(view);
+    app.innerHTML = '<div class="empty">Carregando...</div>';
+
+    // Garante que os programas estejam carregados antes de qualquer view
+    // que dependa deles. Sem isso ha condicao de corrida: clicar em
+    // "Nova sessao" antes do bootstrap terminar deixava o combo vazio.
+    await loadPrograms();
     app.innerHTML = '';
 
     if (view === 'home') return renderHome();
@@ -56,20 +62,28 @@
     if (view === 'data') return renderData();
   }
 
-  // ----- Carregamento inicial -----
+  // ----- Carregamento de programas (com cache) -----
+  let programsPromise = null;
+  function loadPrograms() {
+    if (state.programs.length) return Promise.resolve();
+    if (programsPromise) return programsPromise;
+    programsPromise = (async () => {
+      try {
+        const list = await api('/api/programs');
+        const details = await Promise.all(list.map((p) => api('/api/programs/' + p.id)));
+        state.programs = list;
+        state.programsById = {};
+        details.forEach((p) => { state.programsById[p.id] = p; });
+      } catch (e) {
+        console.error('Falha ao carregar programas:', e);
+        programsPromise = null; // permite retry no proximo navigate
+        throw e;
+      }
+    })();
+    return programsPromise;
+  }
+
   async function bootstrap() {
-    try {
-      state.programs = await api('/api/programs');
-      state.programsById = {};
-      state.programs.forEach((p) => { state.programsById[p.id] = p; });
-      // Carrega detalhes completos (precisamos das opcoes de resposta)
-      const details = await Promise.all(
-        state.programs.map((p) => api('/api/programs/' + p.id))
-      );
-      details.forEach((p) => { state.programsById[p.id] = p; });
-    } catch (e) {
-      console.error(e);
-    }
     navigate('home');
   }
 
@@ -139,9 +153,14 @@
     app.appendChild(node);
 
     const form = document.getElementById('newSessionForm');
-    const programSelect = form.programId;
+    const programSelect = form.elements.programId;
     const programDesc = document.getElementById('programDesc');
     const stimuliFs = document.getElementById('stimuliFieldset');
+
+    if (!state.programs.length) {
+      programDesc.textContent = 'Nao foi possivel carregar a lista de programas. Verifique a conexao com o servidor.';
+      return;
+    }
 
     state.programs.forEach((p) => {
       const opt = document.createElement('option');
@@ -150,7 +169,7 @@
       programSelect.appendChild(opt);
     });
 
-    form.date.value = new Date().toISOString().slice(0, 10);
+    form.elements.date.value = new Date().toISOString().slice(0, 10);
 
     const updateProgramFields = () => {
       const p = state.programsById[programSelect.value];
@@ -172,6 +191,10 @@
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (!programSelect.value) {
+        alert('Selecione um programa.');
+        return;
+      }
       const fd = new FormData(form);
       const programId = fd.get('programId');
       const program = state.programsById[programId];
@@ -228,10 +251,10 @@
 
     // Cabecalho editavel
     const headerForm = document.getElementById('headerForm');
-    headerForm.childName.value = session.childName || '';
-    headerForm.date.value = session.date || '';
-    headerForm.step.value = session.step || '';
-    headerForm.therapists.value = session.therapists || '';
+    headerForm.elements.childName.value = session.childName || '';
+    headerForm.elements.date.value = session.date || '';
+    headerForm.elements.step.value = session.step || '';
+    headerForm.elements.therapists.value = session.therapists || '';
     const stimuliEdit = document.getElementById('stimuliFieldsetEdit');
     stimuliEdit.innerHTML = '<legend>Estimulos</legend>';
     for (let i = 0; i < program.stimulusCount; i++) {
@@ -273,10 +296,10 @@
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            childName: headerForm.childName.value,
-            date: headerForm.date.value,
-            step: headerForm.step.value,
-            therapists: headerForm.therapists.value,
+            childName: headerForm.elements.childName.value,
+            date: headerForm.elements.date.value,
+            step: headerForm.elements.step.value,
+            therapists: headerForm.elements.therapists.value,
             stimuli,
             trials
           })
@@ -621,9 +644,9 @@
     const result = document.getElementById('importResult');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const file = form.file.files[0];
+      const file = form.elements.file.files[0];
       if (!file) return;
-      const mode = form.mode.value;
+      const mode = form.elements.mode.value;
       let payload;
       try {
         payload = JSON.parse(await file.text());
